@@ -7,16 +7,11 @@
 	objects = {
 
 /* Begin PBXFileReference section */
+		EB1EC87E2F5A0D0A00DB076B /* FinalProjectApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinalProjectApp.swift; sourceTree = "<group>"; };
+		EB1EC87F2F5A0D2400DB076B /* ContentVIew.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentVIew.swift; sourceTree = "<group>"; };
+		EB1EC8802F5A0D3700DB076B /* Restaurant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Restaurant.swift; sourceTree = "<group>"; };
 		EB90A3672F5642670017B8D9 /* FinalProject.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FinalProject.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
-
-/* Begin PBXFileSystemSynchronizedRootGroup section */
-		EB90A3692F5642670017B8D9 /* FinalProject */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = FinalProject;
-			sourceTree = "<group>";
-		};
-/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		EB90A3642F5642670017B8D9 /* Frameworks */ = {
@@ -29,11 +24,125 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		EB1EC8702F5A0CE600DB076B /* Components */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		EB1EC8712F5A0CE600DB076B /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				EB1EC8802F5A0D3700DB076B /* Restaurant.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		EB1EC8722F5A0CE600DB076B /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		EB1EC8732F5A0CE600DB076B /* Services */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		EB1EC8742F5A0CE600DB076B /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Utils;
+			sourceTree = "<group>";
+		};
+		EB1EC8752F5A0CE600DB076B /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		EB1EC8762F5A0CE600DB076B /* Home */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+		EB1EC8772F5A0CE600DB076B /* Lists */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Lists;
+			sourceTree = "<group>";
+		};
+		EB1EC8782F5A0CE600DB076B /* Map */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Map;
+			sourceTree = "<group>";
+		};
+		EB1EC8792F5A0CE600DB076B /* Plan */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Plan;
+			sourceTree = "<group>";
+		};
+		EB1EC87A2F5A0CE600DB076B /* Reservations */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Reservations;
+			sourceTree = "<group>";
+		};
+		EB1EC87B2F5A0CE600DB076B /* Restaurants */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Restaurants;
+			sourceTree = "<group>";
+		};
+		EB1EC87C2F5A0CE600DB076B /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				EB1EC8762F5A0CE600DB076B /* Home */,
+				EB1EC8772F5A0CE600DB076B /* Lists */,
+				EB1EC8782F5A0CE600DB076B /* Map */,
+				EB1EC8792F5A0CE600DB076B /* Plan */,
+				EB1EC87A2F5A0CE600DB076B /* Reservations */,
+				EB1EC87B2F5A0CE600DB076B /* Restaurants */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		EB1EC87D2F5A0CE600DB076B /* FinalProject */ = {
+			isa = PBXGroup;
+			children = (
+				EB1EC87F2F5A0D2400DB076B /* ContentVIew.swift */,
+				EB1EC87E2F5A0D0A00DB076B /* FinalProjectApp.swift */,
+				EB1EC8702F5A0CE600DB076B /* Components */,
+				EB1EC8712F5A0CE600DB076B /* Models */,
+				EB1EC8722F5A0CE600DB076B /* Resources */,
+				EB1EC8732F5A0CE600DB076B /* Services */,
+				EB1EC8742F5A0CE600DB076B /* Utils */,
+				EB1EC8752F5A0CE600DB076B /* ViewModels */,
+				EB1EC87C2F5A0CE600DB076B /* Views */,
+			);
+			path = FinalProject;
+			sourceTree = "<group>";
+		};
 		EB90A35E2F5642670017B8D9 = {
 			isa = PBXGroup;
 			children = (
-				EB90A3692F5642670017B8D9 /* FinalProject */,
 				EB90A3682F5642670017B8D9 /* Products */,
+				EB1EC87D2F5A0CE600DB076B /* FinalProject */,
 			);
 			sourceTree = "<group>";
 		};
@@ -59,9 +168,6 @@
 			buildRules = (
 			);
 			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				EB90A3692F5642670017B8D9 /* FinalProject */,
 			);
 			name = FinalProject;
 			packageProductDependencies = (
