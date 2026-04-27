@@ -11,16 +11,13 @@ import SwiftData
 
 struct ProfileView: View {
     @Query(sort: \Restaurant.createdAt, order: .reverse) private var restaurants: [Restaurant]
-    @StateObject private var viewModel: ProfileViewModel
-
-    init() {
-        _viewModel = StateObject(wrappedValue: ProfileViewModel())
-    }
+    @Query(sort: \RestaurantList.createdAt, order: .reverse) private var lists: [RestaurantList]
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 profileHeader
+                listsSection
                 statsSection
                 savedSection
                 visitedSection
@@ -32,12 +29,6 @@ struct ProfileView: View {
         .background(Color(.systemGroupedBackground))
         .navigationTitle("Profile")
         .navigationBarTitleDisplayMode(.large)
-        .onAppear {
-            viewModel.reload(from: restaurants)
-        }
-        .onChange(of: restaurants.count) { _, _ in
-            viewModel.reload(from: restaurants)
-        }
     }
 
     private var profileHeader: some View {
@@ -84,13 +75,13 @@ struct ProfileView: View {
         HStack(spacing: 14) {
             StatCard(
                 title: "Saved",
-                value: "\(viewModel.stats.savedCount)",
+                value: "\(savedRestaurants.count)",
                 subtitle: "restaurants"
             )
 
             StatCard(
                 title: "Visited",
-                value: "\(viewModel.stats.visitedCount)",
+                value: "\(visitedRestaurants.count)",
                 subtitle: "restaurants"
             )
         }
@@ -101,7 +92,7 @@ struct ProfileView: View {
             title: "Saved restaurants",
             emptyTitle: "No saved restaurants yet",
             emptySubtitle: "Once you save places from search or planning, they’ll show up here.",
-            restaurants: Array(viewModel.savedRestaurants.prefix(4))
+            restaurants: Array(savedRestaurants.prefix(4))
         )
     }
 
@@ -110,10 +101,67 @@ struct ProfileView: View {
             title: "Visited restaurants",
             emptyTitle: "No visited restaurants yet",
             emptySubtitle: "Mark places as visited later to build your dining history.",
-            restaurants: Array(viewModel.visitedRestaurants.prefix(4))
+            restaurants: Array(visitedRestaurants.prefix(4))
         )
     }
+    
+    private var listsSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Lists")
+                .font(.title3.weight(.semibold))
 
+            if lists.isEmpty {
+                EmptyProfileCard(
+                    title: "No lists yet",
+                    subtitle: "Create lists from restaurant detail pages to organize places you want to try."
+                )
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(lists) { list in
+                        NavigationLink {
+                            ListDetailView(list: list)
+                        } label: {
+                            HStack(spacing: 14) {
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .fill(Color(.secondarySystemBackground))
+                                    .frame(width: 56, height: 56)
+                                    .overlay {
+                                        Image(systemName: "bookmark.fill")
+                                            .foregroundStyle(.secondary)
+                                    }
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(list.name)
+                                        .font(.headline)
+
+                                    Text("\(list.restaurants.count) restaurant\(list.restaurants.count == 1 ? "" : "s")")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(16)
+                            .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+    
+    private var savedRestaurants: [Restaurant] {
+        restaurants.filter { $0.isSaved }
+    }
+
+    private var visitedRestaurants: [Restaurant] {
+        restaurants.filter { $0.isVisited }
+    }
     private func profileSection(
         title: String,
         emptyTitle: String,
@@ -132,7 +180,12 @@ struct ProfileView: View {
             } else {
                 VStack(spacing: 12) {
                     ForEach(restaurants) { restaurant in
-                        ProfileRestaurantRow(restaurant: restaurant)
+                        NavigationLink {
+                            RestaurantDetailView(restaurant: restaurant)
+                        } label: {
+                            ProfileRestaurantRow(restaurant: restaurant)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }

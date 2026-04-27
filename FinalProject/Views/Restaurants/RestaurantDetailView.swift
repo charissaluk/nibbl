@@ -12,13 +12,16 @@ import MapKit
 
 struct RestaurantDetailView: View {
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var appState: AppState
     @Query(sort: \Restaurant.createdAt, order: .reverse) private var savedRestaurants: [Restaurant]
 
     let restaurant: Restaurant
 
     @State private var persistedRestaurant: Restaurant?
-    @State private var isShowingAddToList = false
+    @State private var selectedRestaurantForList: Restaurant?
+    @State private var selectedRestaurantForReservation: Restaurant?
     @State private var feedbackMessage: String?
+    
 
     var body: some View {
         ScrollView {
@@ -36,9 +39,13 @@ struct RestaurantDetailView: View {
         .background(Color(.systemGroupedBackground))
         .navigationTitle("Restaurant")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $isShowingAddToList) {
-            if let targetRestaurant = currentPersistedOrSourceRestaurant {
-                AddToListSheetView(restaurant: targetRestaurant)
+        .sheet(item: $selectedRestaurantForList) { restaurant in
+            AddToListSheetView(restaurant: restaurant)
+        }
+        .sheet(item: $selectedRestaurantForReservation) { restaurant in
+            NavigationStack {
+                MockReservationBookingView(restaurant: restaurant)
+                    .environmentObject(appState)
             }
         }
         .onAppear {
@@ -46,12 +53,8 @@ struct RestaurantDetailView: View {
         }
     }
 
-    private var currentPersistedOrSourceRestaurant: Restaurant? {
-        persistedRestaurant ?? restaurant
-    }
-
     private var isSaved: Bool {
-        matchingPersistedRestaurant() != nil || restaurant.isSaved
+        matchingPersistedRestaurant()?.isSaved == true
     }
 
     private var heroSection: some View {
@@ -116,34 +119,34 @@ struct RestaurantDetailView: View {
                 Button {
                     toggleSave()
                 } label: {
-                    Label(isSaved ? "Saved" : "Save", systemImage: isSaved ? "bookmark.fill" : "bookmark")
+                    Label("Save", systemImage: isSaved ? "bookmark.fill" : "bookmark")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                         .background(
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .fill(Color.black)
+                            RoundedRectangle(cornerRadius: 18)
+                                .fill(isSaved ? Color.blue : Color(.systemBackground))
                         )
-                        .foregroundStyle(.white)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18)
+                                .stroke(isSaved ? Color.clear : Color.black.opacity(0.08), lineWidth: 1)
+                        )
+                        .foregroundStyle(isSaved ? .white : .black)
                 }
                 .buttonStyle(.plain)
 
                 Button {
-                    ensurePersistedRestaurant()
-                    if matchingPersistedRestaurant() != nil {
-                        isShowingAddToList = true
+                    if let persisted = ensurePersistedRestaurant() {
+                        selectedRestaurantForList = persisted
                     }
                 } label: {
                     Label("Add to List", systemImage: "text.badge.plus")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .fill(Color(.systemBackground))
-                        )
+                        .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 18))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            RoundedRectangle(cornerRadius: 18)
                                 .stroke(Color.black.opacity(0.08), lineWidth: 1)
                         )
                         .foregroundStyle(.primary)
@@ -152,18 +155,29 @@ struct RestaurantDetailView: View {
             }
 
             Button {
+                if let persisted = ensurePersistedRestaurant() {
+                    selectedRestaurantForReservation = persisted
+                }
+            } label: {
+                Label("Reserve Now", systemImage: "calendar.badge.plus")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color.black, in: RoundedRectangle(cornerRadius: 18))
+                    .foregroundStyle(.white)
+            }
+            .buttonStyle(.plain)
+
+            Button {
                 openInMaps()
             } label: {
                 Label("Open in Apple Maps", systemImage: "arrow.up.right.square.fill")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(Color(.systemBackground))
-                    )
+                    .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 18))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        RoundedRectangle(cornerRadius: 18)
                             .stroke(Color.black.opacity(0.08), lineWidth: 1)
                     )
             }
@@ -217,15 +231,22 @@ struct RestaurantDetailView: View {
     }
 
     private func matchingPersistedRestaurant() -> Restaurant? {
-        savedRestaurants.first {
-            $0.name == restaurant.name && $0.address == restaurant.address
+        savedRestaurants.first { saved in
+            normalized(saved.name) == normalized(restaurant.name)
+            &&
+            normalized(saved.address) == normalized(restaurant.address)
         }
     }
 
-    private func ensurePersistedRestaurant() {
+    private func normalized(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    @discardableResult
+    private func ensurePersistedRestaurant() -> Restaurant? {
         if let existing = matchingPersistedRestaurant() {
             persistedRestaurant = existing
-            return
+            return existing
         }
 
         let saved = Restaurant(
@@ -249,24 +270,27 @@ struct RestaurantDetailView: View {
             try modelContext.save()
             persistedRestaurant = saved
             feedbackMessage = "Saved restaurant."
+            return saved
         } catch {
             feedbackMessage = "Could not save restaurant."
+            return nil
         }
     }
 
     private func toggleSave() {
         if let existing = matchingPersistedRestaurant() {
-            modelContext.delete(existing)
+            existing.isSaved.toggle()
+            persistedRestaurant = existing
+        } else if let created = ensurePersistedRestaurant() {
+            created.isSaved = true
+            persistedRestaurant = created
+        }
 
-            do {
-                try modelContext.save()
-                persistedRestaurant = nil
-                feedbackMessage = "Removed from saved restaurants."
-            } catch {
-                feedbackMessage = "Could not update saved status."
-            }
-        } else {
-            ensurePersistedRestaurant()
+        do {
+            try modelContext.save()
+            feedbackMessage = isSaved ? "Saved restaurant." : "Removed from saved restaurants."
+        } catch {
+            feedbackMessage = "Could not update saved status."
         }
     }
 
@@ -276,6 +300,220 @@ struct RestaurantDetailView: View {
 
         if let url = URL(string: urlString) {
             UIApplication.shared.open(url)
+        }
+    }
+}
+
+private struct MockReservationBookingView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var appState: AppState
+
+    let restaurant: Restaurant
+
+    @State private var selectedDate = Date()
+    @State private var selectedTime = Calendar.current.date(bySettingHour: 17, minute: 0, second: 0, of: Date()) ?? Date()
+    @State private var partySize = 2
+    @State private var selectedSlot: Date?
+    @State private var feedbackMessage: String?
+
+    private var acceptsReservations: Bool {
+        MockReservationBackend.acceptsReservations(for: restaurant)
+    }
+
+    private var availableSlots: [Date] {
+        guard acceptsReservations else { return [] }
+
+        let calendar = Calendar.current
+        let selectedComponents = calendar.dateComponents([.hour, .minute], from: selectedTime)
+        let hour = selectedComponents.hour ?? 17
+        let minute = selectedComponents.minute ?? 0
+
+        let roundedMinute = (minute / 15) * 15
+
+        guard var current = calendar.date(
+            bySettingHour: hour,
+            minute: roundedMinute,
+            second: 0,
+            of: selectedDate
+        ) else {
+            return []
+        }
+
+        guard let closing = calendar.date(bySettingHour: 21, minute: 0, second: 0, of: selectedDate) else {
+            return []
+        }
+
+        if current < Date() {
+            current = calendar.date(byAdding: .day, value: 1, to: current) ?? current
+        }
+
+        var slots: [Date] = []
+
+        while current <= closing {
+            slots.append(current)
+            guard let next = calendar.date(byAdding: .minute, value: 15, to: current) else {
+                break
+            }
+            current = next
+        }
+
+        return slots
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 22) {
+                header
+                inputsSection
+                availableTimesSection
+                createButton
+
+                if let feedbackMessage {
+                    Text(feedbackMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(20)
+        }
+        .background(Color(.systemGroupedBackground))
+        .navigationTitle("Reserve")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(restaurant.name)
+                .font(.system(size: 28, weight: .bold))
+
+            Text("\(restaurant.cuisine) • \(restaurant.priceTier)")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            if !acceptsReservations {
+                Text("This restaurant is not currently accepting reservations.")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.red)
+                    .padding(.top, 4)
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 24))
+    }
+
+    private var inputsSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Reservation Details")
+                .font(.headline)
+
+            DatePicker("Date", selection: $selectedDate, displayedComponents: [.date])
+
+            DatePicker("Start time", selection: $selectedTime, displayedComponents: [.hourAndMinute])
+
+            Stepper("Party of \(partySize)", value: $partySize, in: 1...12)
+        }
+        .padding(18)
+        .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 22))
+    }
+
+    private var availableTimesSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Available Times")
+                .font(.headline)
+
+            if availableSlots.isEmpty {
+                Text("No times available.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(availableSlots, id: \.self) { slot in
+                            Button {
+                                selectedSlot = slot
+                            } label: {
+                                Text(slot.formatted(date: .omitted, time: .shortened))
+                                    .font(.subheadline.weight(.semibold))
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 10)
+                                    .background(
+                                        selectedSlot == slot ? Color.black : Color(.secondarySystemBackground),
+                                        in: Capsule()
+                                    )
+                                    .foregroundStyle(selectedSlot == slot ? .white : .primary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(18)
+        .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 22))
+    }
+
+    private var createButton: some View {
+        Button {
+            createReservation()
+        } label: {
+            Text("Create Reservation")
+                .font(.headline)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(
+                    acceptsReservations && selectedSlot != nil ? Color.green : Color.gray,
+                    in: RoundedRectangle(cornerRadius: 18)
+                )
+                .foregroundStyle(.white)
+        }
+        .buttonStyle(.plain)
+        .disabled(!acceptsReservations || selectedSlot == nil)
+    }
+
+    private func createReservation() {
+        guard let selectedSlot else {
+            feedbackMessage = "Choose a time first."
+            return
+        }
+
+        let reservationDate = selectedSlot < Date()
+            ? Calendar.current.date(byAdding: .day, value: 1, to: selectedSlot) ?? selectedSlot
+            : selectedSlot
+
+        let reservation = Reservation(
+            restaurantID: restaurant.id,
+            planningSessionID: UUID(),
+            restaurantName: restaurant.name,
+            restaurantCuisine: restaurant.cuisine,
+            restaurantAddress: restaurant.address,
+            restaurantLatitude: restaurant.latitude,
+            restaurantLongitude: restaurant.longitude,
+            mode: "individual",
+            reservationDate: reservationDate,
+            status: "confirmed",
+            acceptsReservations: acceptsReservations,
+            bookingProvider: MockReservationBackend.providerName(for: restaurant),
+            bookingURLString: MockReservationBackend.bookingURLString(for: restaurant),
+            messages: [
+                "Nibbl: Reservation created for \(partySize) people.",
+                "Nibbl: \(reservationDate.formatted(date: .abbreviated, time: .shortened))"
+            ]
+        )
+
+        modelContext.insert(reservation)
+
+        do {
+            try modelContext.save()
+            dismiss()
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                appState.switchToTab(.reservations)
+            }
+        } catch {
+            feedbackMessage = "Could not create reservation."
+            print("RESERVATION CREATE ERROR:", error)
         }
     }
 }

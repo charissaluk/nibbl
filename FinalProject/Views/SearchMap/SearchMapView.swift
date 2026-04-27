@@ -4,6 +4,7 @@
 //
 //  Created by Charissa Luk on 3/20/26.
 //
+
 import SwiftUI
 import SwiftData
 import MapKit
@@ -18,8 +19,10 @@ struct SearchMapView: View {
 
     @State private var cameraPosition: MapCameraPosition
     @State private var selectedRestaurant: Restaurant?
+    @State private var restaurantForDetail: Restaurant?
+    @State private var saveRefreshToken = UUID()
     @State private var hasCenteredOnUserLocation = false
-
+    
     private let cuisineOptions: [String] = [
         "Japanese", "Korean", "Chinese", "Thai", "Vietnamese",
         "Pizza", "Tacos", "Fast Casual", "Halal",
@@ -50,6 +53,9 @@ struct SearchMapView: View {
         .background(Color(.systemGroupedBackground))
         .navigationTitle("Search")
         .navigationBarTitleDisplayMode(.large)
+        .navigationDestination(item: $restaurantForDetail) { restaurant in
+            RestaurantDetailView(restaurant: restaurant)
+        }
         .sheet(isPresented: $viewModel.isShowingFilters) {
             FilterSheetView(
                 filters: viewModel.filters,
@@ -236,32 +242,15 @@ struct SearchMapView: View {
             Spacer()
         }
     }
-    
-    private func recenterMapOnUser() {
-        guard let location = locationManager.location ?? viewModel.userLocation else { return }
-
-        let region = MKCoordinateRegion(
-            center: location.coordinate,
-            span: MKCoordinateSpan(latitudeDelta: 0.08, longitudeDelta: 0.08)
-        )
-
-        viewModel.region = region
-
-        withAnimation(.easeInOut(duration: 0.25)) {
-            cameraPosition = .region(region)
-        }
-    }
 
     private func selectedRestaurantCard(_ restaurant: Restaurant) -> some View {
-        NavigationLink {
-            RestaurantDetailView(restaurant: resolvedRestaurantForDetail(restaurant))
-        } label: {
+        HStack(spacing: 14) {
             HStack(spacing: 14) {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(Color(.secondarySystemBackground))
                     .frame(width: 64, height: 64)
                     .overlay {
-                        Image(systemName: "fork.knife")
+                        Image(systemName: cuisineIcon(for: restaurant.cuisine))
                             .font(.title3)
                             .foregroundStyle(.secondary)
                     }
@@ -286,21 +275,35 @@ struct SearchMapView: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Color(.systemBackground))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .stroke(Color.black.opacity(0.05), lineWidth: 1)
-            )
+            .contentShape(Rectangle())
+            .onTapGesture {
+                openRestaurantDetail(restaurant)
+            }
+
+            Image(systemName: isRestaurantSaved(restaurant) ? "bookmark.fill" : "bookmark")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(isRestaurantSaved(restaurant) ? .blue : .secondary)
+                .frame(width: 44, height: 44)
+                .background(Color(.secondarySystemBackground), in: Circle())
+                .contentShape(Circle())
+                .onTapGesture {
+                    toggleSavedRestaurant(restaurant)
+                }
         }
-        .buttonStyle(.plain)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color(.systemBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(Color.black.opacity(0.05), lineWidth: 1)
+        )
     }
 
     @ViewBuilder
     private var resultsSection: some View {
+        let _ = saveRefreshToken
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Text("Results")
@@ -334,18 +337,16 @@ struct SearchMapView: View {
             } else {
                 LazyVStack(spacing: 12) {
                     ForEach(viewModel.visibleResults, id: \.id) { restaurant in
-                        NavigationLink {
-                            RestaurantDetailView(restaurant: resolvedRestaurantForDetail(restaurant))
-                        } label: {
-                            SearchResultCard(
-                                restaurant: restaurant,
-                                isSaved: isRestaurantSaved(restaurant),
-                                onSaveTapped: {
-                                    saveRestaurantIfNeeded(restaurant)
-                                }
-                            )
-                        }
-                        .buttonStyle(.plain)
+                        SearchResultCard(
+                            restaurant: restaurant,
+                            isSaved: isRestaurantSaved(restaurant),
+                            onCardTapped: {
+                                openRestaurantDetail(restaurant)
+                            },
+                            onSaveTapped: {
+                                toggleSavedRestaurant(restaurant)
+                            }
+                        )
                     }
                 }
             }
@@ -362,21 +363,74 @@ struct SearchMapView: View {
         )
     }
 
-    private func resolvedRestaurantForDetail(_ restaurant: Restaurant) -> Restaurant {
-        savedRestaurants.first {
-            $0.name == restaurant.name && $0.address == restaurant.address
-        } ?? restaurant
-    }
+    private func recenterMapOnUser() {
+        guard let location = locationManager.location ?? viewModel.userLocation else { return }
 
-    private func isRestaurantSaved(_ restaurant: Restaurant) -> Bool {
-        savedRestaurants.contains {
-            $0.name == restaurant.name && $0.address == restaurant.address
+        let region = MKCoordinateRegion(
+            center: location.coordinate,
+            span: MKCoordinateSpan(latitudeDelta: 0.08, longitudeDelta: 0.08)
+        )
+
+        viewModel.region = region
+
+        withAnimation(.easeInOut(duration: 0.25)) {
+            cameraPosition = .region(region)
         }
     }
 
-    private func saveRestaurantIfNeeded(_ restaurant: Restaurant) {
-        guard !isRestaurantSaved(restaurant) else { return }
+    private func openRestaurantDetail(_ restaurant: Restaurant) {
+        restaurantForDetail = resolvedRestaurantForDetail(restaurant)
+    }
 
+    private func resolvedRestaurantForDetail(_ restaurant: Restaurant) -> Restaurant {
+        persistedRestaurant(for: restaurant) ?? restaurant
+    }
+
+    private func isRestaurantSaved(_ restaurant: Restaurant) -> Bool {
+        persistedRestaurant(for: restaurant)?.isSaved == true
+    }
+
+    private func toggleSavedRestaurant(_ restaurant: Restaurant) {
+        let persisted: Restaurant
+
+        if let existing = persistedRestaurant(for: restaurant) {
+            persisted = existing
+        } else {
+            persisted = Restaurant(
+                name: restaurant.name,
+                cuisine: restaurant.cuisine,
+                priceTier: restaurant.priceTier,
+                latitude: restaurant.latitude,
+                longitude: restaurant.longitude,
+                address: restaurant.address,
+                rating: restaurant.rating,
+                distanceFromUser: restaurant.distanceFromUser,
+                neighborhood: restaurant.neighborhood,
+                isSaved: false,
+                isVisited: restaurant.isVisited,
+                notes: restaurant.notes
+            )
+            modelContext.insert(persisted)
+        }
+
+        persisted.isSaved.toggle()
+
+        do {
+            try modelContext.save()
+        } catch {
+            print("SAVE ERROR:", error)
+        }
+    }
+
+    private func persistedRestaurant(for restaurant: Restaurant) -> Restaurant? {
+        savedRestaurants.first { saved in
+            normalized(saved.name) == normalized(restaurant.name)
+            &&
+            normalized(saved.address) == normalized(restaurant.address)
+        }
+    }
+
+    private func makePersistedRestaurant(from restaurant: Restaurant) -> Restaurant {
         let saved = Restaurant(
             name: restaurant.name,
             cuisine: restaurant.cuisine,
@@ -387,18 +441,44 @@ struct SearchMapView: View {
             rating: restaurant.rating,
             distanceFromUser: restaurant.distanceFromUser,
             neighborhood: restaurant.neighborhood,
-            isSaved: true,
+            isSaved: false,
             isVisited: restaurant.isVisited,
             notes: restaurant.notes
         )
 
         modelContext.insert(saved)
+        return saved
+    }
 
-        do {
-            try modelContext.save()
-        } catch {
-            print("Failed to save restaurant: \(error)")
-        }
+    private func normalized(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+}
+
+private func cuisineIcon(for cuisine: String) -> String {
+    let lowercased = cuisine.lowercased()
+
+    if lowercased.contains("cafe") {
+        return "cup.and.saucer.fill"
+    } else if lowercased.contains("pizza") || lowercased.contains("italian") {
+        return "takeoutbag.and.cup.and.straw.fill"
+    } else if lowercased.contains("japanese") || lowercased.contains("sushi") || lowercased.contains("omakase") {
+        return "fish.fill"
+    } else if lowercased.contains("wine") {
+        return "wineglass.fill"
+    } else if lowercased.contains("steak") || lowercased.contains("american") {
+        return "fork.knife"
+    } else if lowercased.contains("mexican") || lowercased.contains("taco") {
+        return "flame.fill"
+    } else if lowercased.contains("thai")
+        || lowercased.contains("indian")
+        || lowercased.contains("korean")
+        || lowercased.contains("chinese")
+        || lowercased.contains("vietnamese") {
+        return "takeoutbag.and.cup.and.straw.fill"
+    } else {
+        return "fork.knife"
     }
 }
 
@@ -427,19 +507,31 @@ private struct SearchStateCard: View {
                 .fill(Color(.systemBackground))
         )
     }
+    
 }
 
 private struct SearchResultCard: View {
     let restaurant: Restaurant
     let isSaved: Bool
+    let onCardTapped: () -> Void
     let onSaveTapped: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
+        HStack(alignment: .top, spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color(.secondarySystemBackground))
+                    .frame(width: 56, height: 56)
+                    .overlay {
+                        Image(systemName: cuisineIcon(for: restaurant.cuisine))
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                    }
+
+                VStack(alignment: .leading, spacing: 8) {
                     Text(restaurant.name)
                         .font(.headline)
+                        .foregroundStyle(.primary)
 
                     Text("\(restaurant.cuisine) • \(restaurant.priceTier)")
                         .font(.subheadline)
@@ -454,32 +546,29 @@ private struct SearchResultCard: View {
                     Text(DistanceFormatter.milesString(from: restaurant.distanceFromUser))
                         .font(.caption)
                         .foregroundStyle(.secondary)
+
+                    Text(restaurant.address)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
 
                 Spacer()
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                onCardTapped()
+            }
 
-                Button {
+            Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(isSaved ? .blue : .secondary)
+                .frame(width: 48, height: 48)
+                .background(Color(.secondarySystemBackground), in: Circle())
+                .contentShape(Circle())
+                .onTapGesture {
                     onSaveTapped()
-                } label: {
-                    Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
-                        .font(.title3)
-                        .foregroundStyle(isSaved ? .black : .secondary)
                 }
-                .buttonStyle(.plain)
-            }
-
-            Text(restaurant.address)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            if let rating = restaurant.rating {
-                HStack(spacing: 4) {
-                    Image(systemName: "star.fill")
-                        .foregroundStyle(.yellow)
-                    Text(String(format: "%.1f", rating))
-                        .font(.caption.weight(.semibold))
-                }
-            }
         }
         .padding(16)
         .background(
@@ -492,4 +581,3 @@ private struct SearchResultCard: View {
         )
     }
 }
-

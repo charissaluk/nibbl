@@ -4,8 +4,6 @@
 //
 //  Created by Charissa Luk on 3/22/26.
 //
-
-
 import SwiftUI
 import SwiftData
 
@@ -16,8 +14,7 @@ struct AddToListSheetView: View {
 
     let restaurant: Restaurant
 
-    @State private var newListName: String = ""
-    @State private var feedbackMessage: String?
+    @State private var newListName = ""
 
     var body: some View {
         NavigationStack {
@@ -25,12 +22,6 @@ struct AddToListSheetView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     createListSection
                     existingListsSection
-
-                    if let feedbackMessage {
-                        Text(feedbackMessage)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
                 }
                 .padding(20)
             }
@@ -62,17 +53,14 @@ struct AddToListSheetView: View {
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
-                    .background(Color.black, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .background(Color.black, in: RoundedRectangle(cornerRadius: 16))
                     .foregroundStyle(.white)
             }
             .buttonStyle(.plain)
             .disabled(newListName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(.systemBackground))
-        )
+        .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 22))
     }
 
     private var existingListsSection: some View {
@@ -86,10 +74,7 @@ struct AddToListSheetView: View {
                     .foregroundStyle(.secondary)
                     .padding(18)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .fill(Color(.systemBackground))
-                    )
+                    .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 22))
             } else {
                 ForEach(lists) { list in
                     Button {
@@ -112,10 +97,7 @@ struct AddToListSheetView: View {
                                 .foregroundStyle(.secondary)
                         }
                         .padding(16)
-                        .background(
-                            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .fill(Color(.systemBackground))
-                        )
+                        .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 20))
                     }
                     .buttonStyle(.plain)
                 }
@@ -127,48 +109,36 @@ struct AddToListSheetView: View {
         let trimmed = newListName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
-        if let existingList = lists.first(where: { list in
-            list.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let existing = lists.first(where: {
+            $0.name.trimmingCharacters(in: .whitespacesAndNewlines)
                 .localizedCaseInsensitiveCompare(trimmed) == .orderedSame
         }) {
-            addRestaurant(to: existingList)
-            newListName = ""
+            addRestaurant(to: existing)
             return
         }
 
-        let list = RestaurantList(name: trimmed)
-
-        if !list.restaurants.contains(where: { existingRestaurant in
-            existingRestaurant.id == restaurant.id
-        }) {
-            list.restaurants.append(restaurant)
-        }
-
+        let list = RestaurantList(name: trimmed, restaurants: [restaurant])
         modelContext.insert(list)
 
-        do {
-            try modelContext.save()
-            feedbackMessage = "Added to \(trimmed)."
-            newListName = ""
-        } catch {
-            feedbackMessage = "Could not create the list."
-        }
+        saveAndDismiss()
     }
 
     private func addRestaurant(to list: RestaurantList) {
         guard !list.restaurants.contains(where: { $0.id == restaurant.id }) else {
-            feedbackMessage = "Already in \(list.name)."
+            dismiss()
             return
         }
 
         list.restaurants.append(restaurant)
+        saveAndDismiss()
+    }
 
+    private func saveAndDismiss() {
         do {
             try modelContext.save()
-            feedbackMessage = "Added to \(list.name)."
+            dismiss()
         } catch {
-            feedbackMessage = "Could not add to \(list.name)."
+            print("LIST SAVE ERROR:", error)
         }
     }
 }
-

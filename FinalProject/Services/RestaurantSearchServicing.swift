@@ -89,11 +89,19 @@ struct RestaurantSearchService: RestaurantSearchServicing {
         .compactMap { $0?.lowercased() }
         .joined(separator: " ")
 
+        var cuisines: [String] = []
+
+        func add(_ cuisine: String) {
+            if !cuisines.contains(cuisine) {
+                cuisines.append(cuisine)
+            }
+        }
+
         let mappings: [(keywords: [String], cuisine: String)] = [
-            (["sushi", "ramen", "izakaya", "yakitori"], "Japanese"),
+            (["sushi", "ramen", "izakaya", "yakitori", "japanese"], "Japanese"),
             (["thai", "pad thai", "bangkok"], "Thai"),
             (["pizza", "pizzeria"], "Pizza"),
-            (["taco", "taqueria", "burrito"], "Tacos"),
+            (["taco", "taqueria", "burrito", "mexican"], "Mexican"),
             (["halal", "shawarma", "gyro"], "Halal"),
             (["steak", "steakhouse"], "Steakhouse"),
             (["wine", "wine bar"], "Wine Bar"),
@@ -103,19 +111,31 @@ struct RestaurantSearchService: RestaurantSearchServicing {
             (["korean", "bbq", "bulgogi"], "Korean"),
             (["chinese", "dumpling", "dim sum"], "Chinese"),
             (["viet", "pho", "banh mi"], "Vietnamese"),
-            (["burger", "american", "grill"], "American"),
+            (["burger", "american", "grill", "bar"], "American"),
             (["mediterranean", "falafel", "mezze"], "Mediterranean"),
-            (["cafe", "coffee"], "Cafe"),
+            (["cafe", "coffee", "espresso", "bakery"], "Cafe"),
             (["omakase"], "Omakase")
         ]
 
         for mapping in mappings {
             if mapping.keywords.contains(where: { sourceText.contains($0) }) {
-                return mapping.cuisine
+                add(mapping.cuisine)
             }
         }
 
-        return "Restaurant"
+        if item.pointOfInterestCategory == .cafe {
+            add("Cafe")
+        } else if item.pointOfInterestCategory == .bakery {
+            add("Cafe")
+        } else if item.pointOfInterestCategory == .brewery {
+            add("American")
+        } else if item.pointOfInterestCategory == .winery {
+            add("Wine Bar")
+        } else if item.pointOfInterestCategory == .restaurant && cuisines.isEmpty {
+            add("Restaurant")
+        }
+
+        return cuisines.isEmpty ? "Restaurant" : cuisines.prefix(2).joined(separator: ", ")
     }
 
     private func inferredPriceTier(from item: MKMapItem) -> String {

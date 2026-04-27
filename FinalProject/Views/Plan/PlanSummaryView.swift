@@ -9,19 +9,25 @@ import SwiftData
 
 struct PlanSummaryView: View {
     @Environment(\.modelContext) private var modelContext
-    @StateObject private var viewModel: PlanSummaryViewModel
+    @EnvironmentObject private var appState: AppState
+    @Query(sort: \Restaurant.createdAt, order: .reverse) private var restaurants: [Restaurant]
+
+    let session: PlanningSession
+    let likedRecommendations: [RecommendationResult]
+
+    @StateObject private var viewModel = PlanSummaryViewModel()
     @State private var showTopMatch = false
+
+    private var savedRestaurants: [Restaurant] {
+        restaurants.filter { $0.isSaved }
+    }
 
     init(
         session: PlanningSession,
         likedRecommendations: [RecommendationResult]
     ) {
-        _viewModel = StateObject(
-            wrappedValue: PlanSummaryViewModel(
-                session: session,
-                likedRecommendations: likedRecommendations
-            )
-        )
+        self.session = session
+        self.likedRecommendations = likedRecommendations
     }
 
     var body: some View {
@@ -43,9 +49,22 @@ struct PlanSummaryView: View {
         .navigationTitle("Plan Summary")
         .navigationBarTitleDisplayMode(.large)
         .onAppear {
+            viewModel.configure(
+                session: session,
+                likedRecommendations: likedRecommendations,
+                savedRestaurants: savedRestaurants
+            )
+
             withAnimation(.easeOut(duration: 0.4)) {
                 showTopMatch = true
             }
+        }
+        .onChange(of: restaurants.count) { _, _ in
+            viewModel.configure(
+                session: session,
+                likedRecommendations: likedRecommendations,
+                savedRestaurants: savedRestaurants
+            )
         }
     }
 
@@ -67,6 +86,12 @@ struct PlanSummaryView: View {
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(.white)
 
+            ForEach(item.explanationLines, id: \.self) { line in
+                Text(line)
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.85))
+            }
+
             HStack(spacing: 12) {
                 NavigationLink {
                     RestaurantDetailView(restaurant: item.restaurant)
@@ -82,8 +107,9 @@ struct PlanSummaryView: View {
 
                 Button {
                     viewModel.createReservationPlaceholder(for: item, context: modelContext)
+                    appState.switchToTab(.reservations)
                 } label: {
-                    Text("Create Reservation")
+                    Text("Make Reservation")
                         .font(.headline)
                         .foregroundStyle(.white)
                         .padding(.horizontal, 16)
@@ -178,6 +204,12 @@ private struct SummaryRow: View {
                 Text("\(item.matchPercentage)% match")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
+
+                if let firstReason = item.explanationLines.first {
+                    Text(firstReason)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Spacer()

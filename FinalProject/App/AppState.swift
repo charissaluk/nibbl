@@ -16,7 +16,7 @@ final class AppState: ObservableObject {
         case search
         case plan
         case profile
-        case lists
+        case reservations
     }
 
     @Published var selectedTab: Tab = .home

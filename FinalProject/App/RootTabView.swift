@@ -4,6 +4,7 @@
 //
 //  Created by Charissa Luk on 3/15/26.
 //
+
 import SwiftUI
 
 @MainActor
@@ -45,12 +46,12 @@ struct RootTabView: View {
             .tag(AppState.Tab.profile)
 
             NavigationStack {
-                ListsView()
+                ReservationsView()
             }
             .tabItem {
-                Label("Lists", systemImage: "bookmark.fill")
+                Label("Reservations", systemImage: "calendar.badge.clock")
             }
-            .tag(AppState.Tab.lists)
+            .tag(AppState.Tab.reservations)
         }
         .tint(.primary)
     }

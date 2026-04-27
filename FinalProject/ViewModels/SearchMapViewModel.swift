@@ -36,11 +36,11 @@ final class SearchMapViewModel: ObservableObject {
     }
 
     func searchCurrentQuery() async {
-        await runSearch(using: effectiveQuery())
+        await runSearch()
     }
 
     func searchThisArea() async {
-        await runSearch(using: effectiveQuery())
+        await runSearch()
     }
 
     func resetFilters() {
@@ -51,34 +51,53 @@ final class SearchMapViewModel: ObservableObject {
         let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if !trimmedSearch.isEmpty {
-            if let firstCuisine = filters.cuisines.first, !trimmedSearch.localizedCaseInsensitiveContains(firstCuisine) {
-                return "\(firstCuisine) \(trimmedSearch)"
-            }
             return trimmedSearch
         }
 
-        if let firstCuisine = filters.cuisines.first {
-            return "\(firstCuisine) restaurants"
+        if !filters.cuisines.isEmpty {
+            return filters.cuisines
+                .map { "\($0) restaurants" }
+                .joined(separator: " OR ")
         }
 
         return "Restaurants"
     }
 
-    private func runSearch(using query: String) async {
+    private func runSearch() async {
         await MainActor.run {
             self.isLoading = true
             self.errorMessage = nil
         }
 
         do {
-            let fetched = try await searchService.searchRestaurants(
-                query: query,
-                region: region,
-                userLocation: userLocation
-            )
+            let cuisines = filters.cuisines
+            let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            let queries: [String]
+
+            if !trimmedSearch.isEmpty {
+                queries = [trimmedSearch]
+            } else if !cuisines.isEmpty {
+                queries = cuisines.map { "\($0) restaurants" }
+            } else {
+                queries = ["Restaurants"]
+            }
+
+            var combined: [Restaurant] = []
+
+            for query in queries {
+                let fetched = try await searchService.searchRestaurants(
+                    query: query,
+                    region: region,
+                    userLocation: userLocation
+                )
+                combined.append(contentsOf: fetched)
+            }
+
+            let deduped = deduplicate(combined)
 
             await MainActor.run {
-                self.results = fetched
+                self.results = deduped
                 self.isLoading = false
             }
         } catch {
@@ -86,6 +105,21 @@ final class SearchMapViewModel: ObservableObject {
                 self.errorMessage = "Could not load restaurants for this area."
                 self.results = []
                 self.isLoading = false
+            }
+        }
+    }
+    
+    private func deduplicate(_ restaurants: [Restaurant]) -> [Restaurant] {
+        var seen = Set<String>()
+
+        return restaurants.filter { restaurant in
+            let key = "\(restaurant.name.lowercased())|\(restaurant.address.lowercased())"
+
+            if seen.contains(key) {
+                return false
+            } else {
+                seen.insert(key)
+                return true
             }
         }
     }

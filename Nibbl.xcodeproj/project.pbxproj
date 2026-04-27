@@ -42,6 +42,8 @@
 		EB09A8C62F74E74F005C8A54 /* ListDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB09A8C52F74E74F005C8A54 /* ListDetailView.swift */; };
 		EB09A8C82F74F035005C8A54 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB09A8C72F74F035005C8A54 /* LocationManager.swift */; };
 		EBCF864B2F9EF71800D501E1 /* ReservationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBCF864A2F9EF71800D501E1 /* ReservationsView.swift */; };
+		EBCF864F2F9EFEC600D501E1 /* MockReservationBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBCF864E2F9EFEC600D501E1 /* MockReservationBackend.swift */; };
+		EBCF86522F9F198600D501E1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EBCF86512F9F198600D501E1 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -82,6 +84,8 @@
 		EB90A3672F5642670017B8D9 /* FinalProject.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FinalProject.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EBCF864A2F9EF71800D501E1 /* ReservationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReservationsView.swift; sourceTree = "<group>"; };
 		EBCF864D2F9EF77900D501E1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		EBCF864E2F9EFEC600D501E1 /* MockReservationBackend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockReservationBackend.swift; sourceTree = "<group>"; };
+		EBCF86512F9F198600D501E1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -160,6 +164,7 @@
 		EB1EC8732F5A0CE600DB076B /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				EBCF864E2F9EFEC600D501E1 /* MockReservationBackend.swift */,
 				EB09A8962F74D2FB005C8A54 /* RecommendationResult.swift */,
 				EB09A8942F74D2F0005C8A54 /* RestaurantSearchServicing.swift */,
 				EB09A8922F74D2E9005C8A54 /* HapticsServicing.swift */,
@@ -274,6 +279,7 @@
 				EB1EC8742F5A0CE600DB076B /* Utils */,
 				EB1EC8752F5A0CE600DB076B /* ViewModels */,
 				EB1EC87C2F5A0CE600DB076B /* Views */,
+				EBCF86512F9F198600D501E1 /* Assets.xcassets */,
 			);
 			path = FinalProject;
 			sourceTree = "<group>";
@@ -359,6 +365,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				EBCF86522F9F198600D501E1 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -370,6 +377,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				EB09A8BE2F74E5F3005C8A54 /* SwipeDeckView.swift in Sources */,
+				EBCF864F2F9EFEC600D501E1 /* MockReservationBackend.swift in Sources */,
 				EBCF864B2F9EF71800D501E1 /* ReservationsView.swift in Sources */,
 				EB09A8982F74D31C005C8A54 /* MockUserProfile.swift in Sources */,
 				EB09A8C62F74E74F005C8A54 /* ListDetailView.swift in Sources */,
@@ -531,6 +539,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				AUTOMATION_APPLE_EVENTS = NO;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -592,6 +601,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				AUTOMATION_APPLE_EVENTS = NO;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
