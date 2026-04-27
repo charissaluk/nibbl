@@ -45,8 +45,24 @@ final class PlanSetupViewModel: ObservableObject {
     @Published var minPrice: String = "$"
     @Published var maxPrice: String = "$$$"
     @Published var selectedTransportMode: TransportMode = .driving
+    enum RestaurantSource: String, CaseIterable, Identifiable {
+        case savedOnly = "Saved Only"
+        case widerSelection = "Wider Selection"
+
+        var id: String { rawValue }
+
+        var helperText: String {
+            switch self {
+            case .savedOnly:
+                return "Swipe through restaurants you’ve already saved."
+            case .widerSelection:
+                return "Include saved restaurants plus starter map recommendations for a bigger pool."
+            }
+        }
+    }
     @Published var maxDistanceMiles: Double = 5
     @Published var selectedFriendIDs: Set<String> = []
+    @Published var selectedRestaurantSource: RestaurantSource = .widerSelection
 
     @Published private(set) var availableFriends: [MockUserProfile] = []
     @Published private(set) var lastCreatedSession: PlanningSession?

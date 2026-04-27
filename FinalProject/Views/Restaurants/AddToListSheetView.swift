@@ -127,8 +127,23 @@ struct AddToListSheetView: View {
         let trimmed = newListName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
+        if let existingList = lists.first(where: { list in
+            list.name.trimmingCharacters(in: .whitespacesAndNewlines)
+                .localizedCaseInsensitiveCompare(trimmed) == .orderedSame
+        }) {
+            addRestaurant(to: existingList)
+            newListName = ""
+            return
+        }
+
         let list = RestaurantList(name: trimmed)
-        list.restaurants.append(restaurant)
+
+        if !list.restaurants.contains(where: { existingRestaurant in
+            existingRestaurant.id == restaurant.id
+        }) {
+            list.restaurants.append(restaurant)
+        }
+
         modelContext.insert(list)
 
         do {
@@ -156,3 +171,4 @@ struct AddToListSheetView: View {
         }
     }
 }
+

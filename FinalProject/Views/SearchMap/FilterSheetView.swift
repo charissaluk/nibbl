@@ -64,20 +64,22 @@ struct FilterSheetView: View {
 
     private var cuisineSection: some View {
         filterCard(title: "Cuisine") {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 10)], spacing: 10) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 112), spacing: 10)], spacing: 10) {
                 ForEach(availableCuisines, id: \.self) { cuisine in
                     Button {
                         toggleCuisine(cuisine)
                     } label: {
                         Text(cuisine)
                             .font(.subheadline.weight(.medium))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
                             .foregroundStyle(localFilters.cuisines.contains(cuisine) ? .white : .primary)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
                             .frame(maxWidth: .infinity)
                             .background(
                                 Capsule()
-                                    .fill(localFilters.cuisines.contains(cuisine) ? Color.black : Color(.secondarySystemBackground))
+                                    .fill(localFilters.cuisines.contains(cuisine) ? Color.black : Color(.tertiarySystemFill))
                             )
                     }
                     .buttonStyle(.plain)
@@ -100,6 +102,7 @@ struct FilterSheetView: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                    .tint(.black)
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
@@ -113,6 +116,7 @@ struct FilterSheetView: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                    .tint(.black)
                 }
             }
         }
@@ -183,3 +187,4 @@ struct FilterSheetView: View {
         }
     }
 }
+

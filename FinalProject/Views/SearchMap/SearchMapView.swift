@@ -18,6 +18,7 @@ struct SearchMapView: View {
 
     @State private var cameraPosition: MapCameraPosition
     @State private var selectedRestaurant: Restaurant?
+    @State private var hasCenteredOnUserLocation = false
 
     private let cuisineOptions: [String] = [
         "Japanese", "Korean", "Chinese", "Thai", "Vietnamese",
@@ -67,16 +68,9 @@ struct SearchMapView: View {
         .onReceive(locationManager.$location) { location in
             viewModel.userLocation = location
 
-            if let location {
-                let coordinate = location.coordinate
-                viewModel.region.center = coordinate
-                cameraPosition = .region(
-                    MKCoordinateRegion(
-                        center: coordinate,
-                        span: MKCoordinateSpan(latitudeDelta: 0.08, longitudeDelta: 0.08)
-                    )
-                )
-            }
+            guard let location, !hasCenteredOnUserLocation else { return }
+            centerMap(on: location.coordinate)
+            hasCenteredOnUserLocation = true
         }
     }
 
@@ -124,8 +118,48 @@ struct SearchMapView: View {
             VStack(spacing: 10) {
                 searchBar
                 controlsRow
+
+                if viewModel.isLoading {
+                    Label("Searching…", systemImage: "magnifyingglass")
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color(.systemBackground), in: Capsule())
+                        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+                }
+
+                if let errorMessage = viewModel.errorMessage {
+                    Text(errorMessage)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.orange)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color(.systemBackground), in: Capsule())
+                }
             }
             .padding(14)
+
+            VStack {
+                Spacer()
+
+                HStack(alignment: .bottom) {
+                    Spacer()
+
+                    Button {
+                        recenterMapOnUser()
+                    } label: {
+                        Image(systemName: "location.fill")
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(.blue)
+                            .frame(width: 44, height: 44)
+                            .background(Color(.systemBackground), in: Circle())
+                            .shadow(color: .black.opacity(0.12), radius: 10, x: 0, y: 6)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.trailing, 14)
+                    .padding(.bottom, selectedRestaurant == nil ? 14 : 110)
+                }
+            }
 
             if let selectedRestaurant {
                 VStack {
@@ -146,8 +180,17 @@ struct SearchMapView: View {
             TextField("Search restaurants, cuisines, or vibes", text: $viewModel.searchText)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+                .submitLabel(.search)
+                .onSubmit {
+                    Task {
+                        await viewModel.searchCurrentQuery()
+                    }
+                }
 
-            if !viewModel.searchText.isEmpty {
+            if viewModel.isLoading {
+                ProgressView()
+                    .controlSize(.small)
+            } else if !viewModel.searchText.isEmpty {
                 Button {
                     viewModel.searchText = ""
                 } label: {
@@ -158,8 +201,9 @@ struct SearchMapView: View {
             }
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .frame(height: 48)
+        .background(Color(.systemBackground).opacity(0.94), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .shadow(color: .black.opacity(0.08), radius: 10, x: 0, y: 5)
     }
 
     private var controlsRow: some View {
@@ -169,9 +213,9 @@ struct SearchMapView: View {
             } label: {
                 Label("Filters", systemImage: "slider.horizontal.3")
                     .font(.subheadline.weight(.semibold))
+                    .frame(height: 44)
                     .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(.ultraThinMaterial, in: Capsule())
+                    .background(Color(.systemBackground).opacity(0.94), in: Capsule())
             }
             .buttonStyle(.plain)
 
@@ -180,34 +224,31 @@ struct SearchMapView: View {
                     await viewModel.searchThisArea()
                 }
             } label: {
-                HStack(spacing: 6) {
-                    if viewModel.isLoading {
-                        ProgressView()
-                            .controlSize(.small)
-                    }
-                    Text("Search This Area")
-                        .font(.subheadline.weight(.semibold))
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(.ultraThinMaterial, in: Capsule())
+                Label(viewModel.isLoading ? "Searching" : "Search Area", systemImage: "magnifyingglass")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(height: 44)
+                    .padding(.horizontal, 14)
+                    .background(Color(.systemBackground).opacity(0.94), in: Capsule())
             }
             .buttonStyle(.plain)
+            .disabled(viewModel.isLoading)
 
             Spacer()
+        }
+    }
+    
+    private func recenterMapOnUser() {
+        guard let location = locationManager.location ?? viewModel.userLocation else { return }
 
-            Button {
-                Task {
-                    await viewModel.searchCurrentQuery()
-                }
-            } label: {
-                Image(systemName: "arrow.clockwise.circle.fill")
-                    .font(.title2)
-                    .foregroundStyle(.black)
-                    .padding(8)
-                    .background(.ultraThinMaterial, in: Circle())
-            }
-            .buttonStyle(.plain)
+        let region = MKCoordinateRegion(
+            center: location.coordinate,
+            span: MKCoordinateSpan(latitudeDelta: 0.08, longitudeDelta: 0.08)
+        )
+
+        viewModel.region = region
+
+        withAnimation(.easeInOut(duration: 0.25)) {
+            cameraPosition = .region(region)
         }
     }
 
@@ -309,6 +350,16 @@ struct SearchMapView: View {
                 }
             }
         }
+    }
+
+    private func centerMap(on coordinate: CLLocationCoordinate2D) {
+        viewModel.region.center = coordinate
+        cameraPosition = .region(
+            MKCoordinateRegion(
+                center: coordinate,
+                span: MKCoordinateSpan(latitudeDelta: 0.08, longitudeDelta: 0.08)
+            )
+        )
     }
 
     private func resolvedRestaurantForDetail(_ restaurant: Restaurant) -> Restaurant {
@@ -441,3 +492,4 @@ private struct SearchResultCard: View {
         )
     }
 }
+

@@ -94,9 +94,10 @@ struct SwipeDeckView: View {
             Text("Choose your favorites")
                 .font(.title2.weight(.bold))
 
-            Text("\(viewModel.remainingCount) left")
+            Text("\(viewModel.remainingCount) left • swipe through saved and nearby restaurant ideas")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
         }
     }
 

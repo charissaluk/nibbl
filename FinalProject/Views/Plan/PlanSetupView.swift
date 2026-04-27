@@ -23,6 +23,7 @@ struct PlanSetupView: View {
             VStack(alignment: .leading, spacing: 24) {
                 introCard
                 modeSection
+                sourceSection
 
                 if viewModel.isGroupMode {
                     FriendSelectionView(
@@ -66,10 +67,24 @@ struct PlanSetupView: View {
     }
 
     private var candidateRestaurants: [Restaurant] {
-        let combined = dedupedRestaurants(savedRestaurants + mockFallbackRestaurants)
-        let filtered = prefilterCandidates(combined)
+        let baseRestaurants: [Restaurant]
 
-        return filtered.isEmpty ? mockFallbackRestaurants : filtered
+        switch viewModel.selectedRestaurantSource {
+        case .savedOnly:
+            baseRestaurants = savedRestaurants
+
+        case .widerSelection:
+            baseRestaurants = savedRestaurants + mockFallbackRestaurants
+        }
+
+        let deduped = dedupedRestaurants(baseRestaurants)
+        let filtered = prefilterCandidates(deduped)
+
+        if viewModel.selectedRestaurantSource == .widerSelection {
+            return filtered.isEmpty ? mockFallbackRestaurants : filtered
+        } else {
+            return filtered
+        }
     }
 
     private func dedupedRestaurants(_ restaurants: [Restaurant]) -> [Restaurant] {
@@ -232,11 +247,39 @@ struct PlanSetupView: View {
                 }
             }
             .pickerStyle(.segmented)
+            .tint(.black)
+        }
+    }
+    
+    private var sourceSection: some View {
+        planSectionCard(title: "Restaurant Pool") {
+            VStack(alignment: .leading, spacing: 10) {
+                Picker("Restaurant Pool", selection: $viewModel.selectedRestaurantSource) {
+                    ForEach(PlanSetupViewModel.RestaurantSource.allCases) { source in
+                        Text(source.rawValue).tag(source)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Text(viewModel.selectedRestaurantSource.helperText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                if viewModel.selectedRestaurantSource == .savedOnly && savedRestaurants.isEmpty {
+                    Text("No saved restaurants yet. Choose Wider Selection to start with sample map recommendations.")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.orange)
+                }
+            }
         }
     }
 
     private var cuisineSection: some View {
         planSectionCard(title: "Cuisines") {
+            Text("Pick cuisines now, or leave this open to discover more options.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
             FlexibleTagWrap(
                 items: viewModel.availableCuisines,
                 selectedItems: viewModel.selectedCuisines,
@@ -249,31 +292,39 @@ struct PlanSetupView: View {
 
     private var budgetSection: some View {
         planSectionCard(title: "Budget") {
-            HStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Min")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Choose the lowest and highest price tier you want included.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
-                    Picker("Minimum Price", selection: $viewModel.minPrice) {
-                        ForEach(PriceTierHelper.orderedTiers, id: \.self) { tier in
-                            Text(tier).tag(tier)
+                HStack(spacing: 16) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Min")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.secondary)
+
+                        Picker("Minimum Price", selection: $viewModel.minPrice) {
+                            ForEach(PriceTierHelper.orderedTiers, id: \.self) { tier in
+                                Text(tier).tag(tier)
+                            }
                         }
+                        .pickerStyle(.segmented)
+                        .tint(.black)
                     }
-                    .pickerStyle(.segmented)
-                }
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Max")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Max")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.secondary)
 
-                    Picker("Maximum Price", selection: $viewModel.maxPrice) {
-                        ForEach(PriceTierHelper.orderedTiers, id: \.self) { tier in
-                            Text(tier).tag(tier)
+                        Picker("Maximum Price", selection: $viewModel.maxPrice) {
+                            ForEach(PriceTierHelper.orderedTiers, id: \.self) { tier in
+                                Text(tier).tag(tier)
+                            }
                         }
+                        .pickerStyle(.segmented)
+                        .tint(.black)
                     }
-                    .pickerStyle(.segmented)
                 }
             }
         }
@@ -288,6 +339,7 @@ struct PlanSetupView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+            .tint(.black)
 
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
@@ -315,6 +367,12 @@ struct PlanSetupView: View {
 
     private var actionSection: some View {
         Button {
+            guard !candidateRestaurants.isEmpty else {
+                viewModel.resetMessages()
+                viewModel.errorMessage = "No restaurants match this setup. Try Wider Selection, loosen filters, or save more restaurants first."
+                return
+            }
+
             viewModel.startSession(context: modelContext)
         } label: {
             HStack {
@@ -330,11 +388,11 @@ struct PlanSetupView: View {
             .padding(18)
             .background(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(viewModel.canStartSession ? Color.black : Color.gray)
+                    .fill(viewModel.canStartSession && !candidateRestaurants.isEmpty ? Color.black : Color.gray)
             )
         }
         .buttonStyle(.plain)
-        .disabled(!viewModel.canStartSession)
+        .disabled(!viewModel.canStartSession || candidateRestaurants.isEmpty)
     }
 
     @ViewBuilder
@@ -429,7 +487,7 @@ private struct FlexibleTagWrap: View {
     let onTap: (String) -> Void
 
     private let columns = [
-        GridItem(.adaptive(minimum: 92), spacing: 10)
+        GridItem(.adaptive(minimum: 112), spacing: 10)
     ]
 
     var body: some View {
@@ -440,13 +498,15 @@ private struct FlexibleTagWrap: View {
                 } label: {
                     Text(item)
                         .font(.subheadline.weight(.medium))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
                         .foregroundStyle(selectedItems.contains(item) ? .white : .primary)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
                         .frame(maxWidth: .infinity)
                         .background(
                             Capsule()
-                                .fill(selectedItems.contains(item) ? Color.black : Color(.secondarySystemBackground))
+                                .fill(selectedItems.contains(item) ? Color.black : Color(.tertiarySystemFill))
                         )
                 }
                 .buttonStyle(.plain)
@@ -454,3 +514,4 @@ private struct FlexibleTagWrap: View {
         }
     }
 }
+

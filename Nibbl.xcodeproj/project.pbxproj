@@ -41,6 +41,7 @@
 		EB09A8C42F74E731005C8A54 /* RestaurantDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB09A8C32F74E731005C8A54 /* RestaurantDetailView.swift */; };
 		EB09A8C62F74E74F005C8A54 /* ListDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB09A8C52F74E74F005C8A54 /* ListDetailView.swift */; };
 		EB09A8C82F74F035005C8A54 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB09A8C72F74F035005C8A54 /* LocationManager.swift */; };
+		EBCF864B2F9EF71800D501E1 /* ReservationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBCF864A2F9EF71800D501E1 /* ReservationsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -77,9 +78,10 @@
 		EB09A8C32F74E731005C8A54 /* RestaurantDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestaurantDetailView.swift; sourceTree = "<group>"; };
 		EB09A8C52F74E74F005C8A54 /* ListDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListDetailView.swift; sourceTree = "<group>"; };
 		EB09A8C72F74F035005C8A54 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
-		EB09A8C92F74F2BC005C8A54 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		EB1EC8802F5A0D3700DB076B /* Restaurant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Restaurant.swift; sourceTree = "<group>"; };
 		EB90A3672F5642670017B8D9 /* FinalProject.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FinalProject.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EBCF864A2F9EF71800D501E1 /* ReservationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReservationsView.swift; sourceTree = "<group>"; };
+		EBCF864D2F9EF77900D501E1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -231,6 +233,7 @@
 		EB1EC87A2F5A0CE600DB076B /* Reservations */ = {
 			isa = PBXGroup;
 			children = (
+				EBCF864A2F9EF71800D501E1 /* ReservationsView.swift */,
 			);
 			path = Reservations;
 			sourceTree = "<group>";
@@ -262,7 +265,7 @@
 		EB1EC87D2F5A0CE600DB076B /* FinalProject */ = {
 			isa = PBXGroup;
 			children = (
-				EB09A8C92F74F2BC005C8A54 /* Info.plist */,
+				EBCF864D2F9EF77900D501E1 /* Info.plist */,
 				EB09A8712F74CD6B005C8A54 /* App */,
 				EB1EC8702F5A0CE600DB076B /* Components */,
 				EB1EC8712F5A0CE600DB076B /* Models */,
@@ -367,6 +370,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				EB09A8BE2F74E5F3005C8A54 /* SwipeDeckView.swift in Sources */,
+				EBCF864B2F9EF71800D501E1 /* ReservationsView.swift in Sources */,
 				EB09A8982F74D31C005C8A54 /* MockUserProfile.swift in Sources */,
 				EB09A8C62F74E74F005C8A54 /* ListDetailView.swift in Sources */,
 				EB09A8B82F74E5D6005C8A54 /* PlanSummaryViewModel.swift in Sources */,
