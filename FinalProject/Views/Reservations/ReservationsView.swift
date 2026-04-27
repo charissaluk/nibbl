@@ -364,7 +364,11 @@ private struct ReservationDetailView: View {
             VStack(alignment: .leading, spacing: 22) {
                 headerCard
                 statusCard
-                chatSection
+
+                if reservation.mode == "group" {
+                    chatSection
+                }
+
                 bookingSection
             }
             .padding(20)
@@ -478,22 +482,36 @@ private struct ReservationDetailView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {
-                Button {
-                    confirmReservation()
-                } label: {
-                    Label("Confirm with Mock Backend", systemImage: "checkmark.circle.fill")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Color.green, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                        .foregroundStyle(.white)
+                if reservation.status == "confirmed" {
+                    Button {
+                        feedbackMessage = "Use the date and time picker above to modify your reservation."
+                    } label: {
+                        Label("Modify Reservation", systemImage: "calendar.badge.clock")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.gray.opacity(0.22), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                            .foregroundStyle(.primary)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Button {
+                        confirmReservation()
+                    } label: {
+                        Label("Confirm Reservation", systemImage: "checkmark.circle.fill")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.green, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                            .foregroundStyle(.white)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
 
                 if let urlString = reservation.bookingURLString,
                    let url = URL(string: urlString) {
                     Button {
-                        UIApplication.shared.open(url)
+                        UIApplication.shared.open(url, options: [:])
                     } label: {
                         Label("Open External Booking Site", systemImage: "safari.fill")
                             .font(.headline)
@@ -508,7 +526,7 @@ private struct ReservationDetailView: View {
                     .buttonStyle(.plain)
                 }
             }
-            
+
             Button {
                 showCancelConfirmation = true
             } label: {
@@ -531,7 +549,6 @@ private struct ReservationDetailView: View {
 
                 Button("No", role: .cancel) { }
             }
-            .buttonStyle(.plain)
 
             if let feedbackMessage {
                 Text(feedbackMessage)

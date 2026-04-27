@@ -4,6 +4,7 @@
 //
 //  Created by Charissa Luk on 3/20/26.
 //
+
 import Foundation
 import SwiftData
 import Combine
@@ -118,7 +119,7 @@ final class PlanSummaryViewModel: ObservableObject {
                 (filterScore * 0.20) +
                 (distanceScore * 0.10)
 
-            return Int((finalScore * 100).rounded())
+            return boundedPercentage(finalScore)
         } else {
             let finalScore =
                 (savedCuisineScore * 0.40) +
@@ -126,8 +127,12 @@ final class PlanSummaryViewModel: ObservableObject {
                 (filterScore * 0.20) +
                 (distanceScore * 0.15)
 
-            return Int((finalScore * 100).rounded())
+            return boundedPercentage(finalScore)
         }
+    }
+
+    private func boundedPercentage(_ score: Double) -> Int {
+        min(100, max(0, Int((score * 100).rounded())))
     }
 
     private func savedCuisineSimilarity(for restaurant: Restaurant) -> Double {
@@ -174,8 +179,11 @@ final class PlanSummaryViewModel: ObservableObject {
 
         if !session.selectedCuisineFilters.isEmpty {
             total += 1
+
             let candidateCuisines = cuisineTokens(from: restaurant.cuisine)
-            let filterCuisines = Set(session.selectedCuisineFilters.flatMap { cuisineTokens(from: $0) })
+            let filterCuisines = Set(session.selectedCuisineFilters.flatMap {
+                cuisineTokens(from: $0)
+            })
 
             if candidateCuisines.contains(where: { filterCuisines.contains($0) }) {
                 score += 1
@@ -183,6 +191,7 @@ final class PlanSummaryViewModel: ObservableObject {
         }
 
         total += 1
+
         if PriceTierHelper.isWithinRange(
             restaurant.priceTier,
             min: session.minPriceTier,
@@ -224,20 +233,26 @@ final class PlanSummaryViewModel: ObservableObject {
 
         if savedCuisineScore >= 1.0 {
             lines.append("✓ Similar cuisine to your saved spots")
-        } else if savedCuisineScore >= 0.65 {
-            lines.append("✓ Balanced with your saved taste")
+        } else {
+            lines.append("✕ Different cuisine from your saved spots")
         }
 
         if savedPriceScore >= 0.75 {
             lines.append("✓ Similar price range to places you save")
+        } else {
+            lines.append("✕ Different price range from places you save")
         }
 
         if filterScore >= 0.75 {
             lines.append("✓ Matches your current filters")
+        } else {
+            lines.append("✕ Does not fully match your current filters")
         }
 
         if distance >= 0.75 {
             lines.append("✓ Convenient distance")
+        } else {
+            lines.append("✕ Farther than your preferred distance")
         }
 
         if session.mode == "group" {
@@ -246,9 +261,14 @@ final class PlanSummaryViewModel: ObservableObject {
                 let avg = result.friendCompatibility.values.reduce(0, +) / Double(result.friendCompatibility.count)
                 return Int((avg * 100).rounded())
             }()
-            lines.append("Group fit: \(averageFriendFit)%")
+
+            if averageFriendFit >= 70 {
+                lines.append("✓ Group fit: \(averageFriendFit)%")
+            } else {
+                lines.append("✕ Group fit: \(averageFriendFit)%")
+            }
         } else {
-            lines.append("Based on your saved restaurants")
+            lines.append("✓ Based on your saved restaurants")
         }
 
         return lines

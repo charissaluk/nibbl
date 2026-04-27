@@ -28,21 +28,18 @@ enum MockReservationBackend {
     static func bookingURLString(for restaurant: Restaurant) -> String? {
         guard acceptsReservations(for: restaurant) else { return nil }
 
-        let encodedName = restaurant.name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "restaurant"
+        let query = "\(restaurant.name) \(restaurant.address)"
+        let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "restaurant"
 
-        if providerName(for: restaurant) == "Resy" {
-            return "https://resy.com/search?query=\(encodedName)"
-        } else {
-            return "https://www.opentable.com/s?term=\(encodedName)"
-        }
+        return "https://www.google.com/maps/search/?api=1&query=\(encodedQuery)"
     }
 
     static func defaultMessages(for mode: String) -> [String] {
         if mode == "group" {
             return [
-                "Me: I’m free the 24th and 25th after 6 PM.",
-                "Mei: I can also do the 25th!",
-                "Jordan: 25th works for me after 7."
+                "Me: I’m free the 8th and 9th after 6 PM.",
+                "Mei: I can also do the 9th!",
+                "Eliza: 9th also works for me but only after 7 PM."
             ]
         } else {
             return [

@@ -4,6 +4,7 @@
 //
 //  Created by Charissa Luk on 3/25/26.
 //
+
 import SwiftUI
 import SwiftData
 
@@ -49,23 +50,23 @@ struct PlanSummaryView: View {
         .navigationTitle("Plan Summary")
         .navigationBarTitleDisplayMode(.large)
         .onAppear {
-            viewModel.configure(
-                session: session,
-                likedRecommendations: likedRecommendations,
-                savedRestaurants: savedRestaurants
-            )
+            refreshSummary()
 
             withAnimation(.easeOut(duration: 0.4)) {
                 showTopMatch = true
             }
         }
         .onChange(of: restaurants.count) { _, _ in
-            viewModel.configure(
-                session: session,
-                likedRecommendations: likedRecommendations,
-                savedRestaurants: savedRestaurants
-            )
+            refreshSummary()
         }
+    }
+
+    private func refreshSummary() {
+        viewModel.configure(
+            session: session,
+            likedRecommendations: likedRecommendations,
+            savedRestaurants: savedRestaurants
+        )
     }
 
     private func topMatchCard(_ item: PlanSummaryViewModel.SummaryItem) -> some View {
@@ -86,10 +87,17 @@ struct PlanSummaryView: View {
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(.white)
 
-            ForEach(item.explanationLines, id: \.self) { line in
-                Text(line)
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.85))
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(item.explanationLines, id: \.self) { line in
+                    HStack(spacing: 8) {
+                        Image(systemName: explanationIcon(for: line))
+                            .foregroundStyle(explanationColor(for: line))
+
+                        Text(cleanExplanation(line))
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.9))
+                    }
+                }
             }
 
             HStack(spacing: 12) {
@@ -114,7 +122,7 @@ struct PlanSummaryView: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
-                        .background(Color.white.opacity(0.15), in: Capsule())
+                        .background(Color.white.opacity(0.18), in: Capsule())
                 }
                 .buttonStyle(.plain)
             }
@@ -129,13 +137,7 @@ struct PlanSummaryView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [Color.black, Color.gray.opacity(0.9)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .fill(matchGradient(for: item.matchPercentage))
         )
     }
 
@@ -203,12 +205,18 @@ private struct SummaryRow: View {
 
                 Text("\(item.matchPercentage)% match")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(matchTextColor(for: item.matchPercentage))
 
                 if let firstReason = item.explanationLines.first {
-                    Text(firstReason)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    HStack(spacing: 5) {
+                        Image(systemName: explanationIcon(for: firstReason))
+                            .font(.caption)
+                            .foregroundStyle(explanationColor(for: firstReason))
+
+                        Text(cleanExplanation(firstReason))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
 
@@ -228,4 +236,50 @@ private struct SummaryRow: View {
                 .stroke(Color.black.opacity(0.05), lineWidth: 1)
         )
     }
+}
+
+private func matchGradient(for percentage: Int) -> LinearGradient {
+    if percentage >= 80 {
+        return LinearGradient(
+            colors: [Color.green.opacity(0.95), Color.green.opacity(0.65)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    } else if percentage >= 50 {
+        return LinearGradient(
+            colors: [Color.yellow.opacity(0.95), Color.orange.opacity(0.75)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    } else {
+        return LinearGradient(
+            colors: [Color.red.opacity(0.95), Color.red.opacity(0.65)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+}
+
+private func matchTextColor(for percentage: Int) -> Color {
+    if percentage >= 80 {
+        return .green
+    } else if percentage >= 50 {
+        return .orange
+    } else {
+        return .red
+    }
+}
+
+private func explanationIcon(for line: String) -> String {
+    line.hasPrefix("✕") ? "xmark.circle.fill" : "checkmark.circle.fill"
+}
+
+private func explanationColor(for line: String) -> Color {
+    line.hasPrefix("✕") ? .red : .green
+}
+
+private func cleanExplanation(_ line: String) -> String {
+    line
+        .replacingOccurrences(of: "✓ ", with: "")
+        .replacingOccurrences(of: "✕ ", with: "")
 }
