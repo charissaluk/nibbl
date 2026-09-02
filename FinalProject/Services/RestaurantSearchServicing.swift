@@ -35,21 +35,8 @@ struct RestaurantSearchService: RestaurantSearchServicing {
         return response.mapItems.compactMap { item in
             guard let name = item.name else { return nil }
 
-            let placemark = item.placemark
-            let coordinate = placemark.coordinate
-
-            let addressParts = [
-                placemark.subThoroughfare,
-                placemark.thoroughfare,
-                placemark.locality,
-                placemark.administrativeArea
-            ]
-            .compactMap { $0 }
-            .filter { !$0.isEmpty }
-
-            let address = addressParts.isEmpty
-                ? "Address unavailable"
-                : addressParts.joined(separator: ", ")
+            let address = item.address?.fullAddress ?? "Address unavailable"
+            let coordinate = item.location.coordinate
 
             let cuisine = inferredCuisine(from: item)
             let priceTier = inferredPriceTier(from: item)
@@ -73,7 +60,7 @@ struct RestaurantSearchService: RestaurantSearchServicing {
                     let meters = userLocation.distance(from: restaurantLocation)
                     return meters / 1609.34
                 }(),
-                neighborhood: placemark.subLocality ?? placemark.locality,
+                neighborhood: item.address?.shortAddress,
                 isSaved: false,
                 isVisited: false,
                 notes: nil
@@ -84,7 +71,8 @@ struct RestaurantSearchService: RestaurantSearchServicing {
     private func inferredCuisine(from item: MKMapItem) -> String {
         let sourceText = [
             item.name,
-            item.placemark.title
+            item.address?.fullAddress,
+            item.address?.shortAddress
         ]
         .compactMap { $0?.lowercased() }
         .joined(separator: " ")
@@ -141,7 +129,8 @@ struct RestaurantSearchService: RestaurantSearchServicing {
     private func inferredPriceTier(from item: MKMapItem) -> String {
         let sourceText = [
             item.name,
-            item.placemark.title
+            item.address?.fullAddress,
+            item.address?.shortAddress
         ]
         .compactMap { $0?.lowercased() }
         .joined(separator: " ")
