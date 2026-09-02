@@ -1,4 +1,21 @@
+# macOS
 .DS_Store
+
+# Xcode user state
 xcuserdata/
 *.xcuserstate
+*.xcscmblueprint
+
+# Xcode build output
 DerivedData/
+build/
+Build/
+*.moved-aside
+
+# Swift Package Manager
+.build/
+Package.resolved
+
+# App archives and symbols
+*.xcarchive
+*.dSYM
