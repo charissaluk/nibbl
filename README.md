@@ -1,50 +1,113 @@
-#  README
+# Nibbl
 
-# Final Project: Food Social Media App
+Nibbl is an iOS restaurant discovery and group-planning prototype for finding, saving, comparing, and choosing places to eat.
 
-## Project Description
-This project will create a restaurant discovery and personal restaurant tracking app with a social component. Users will be able to save restaurants they have visited or want to try, rate them, and organize them into custom lists. The app will also support searching and filtering saved restaurants by name, rating, tags, and location.
+## Overview
 
-To help with the common “Where should we eat?” problem, the app will recommend restaurants based on the user’s taste profile and past ratings. Compared to existing rating and reservation platforms such as Yelp, OpenTable, and Resy, this app emphasizes personalized recommendations and adds features for planning group outings.
+Nibbl helps users search nearby restaurants, save favorites, organize places into custom lists, and plan individual or group dining decisions. The app combines location-aware restaurant search with persistent restaurant tracking, swipe-based recommendations, and local reservation records so users can move from discovery to a shortlist to a selected spot.
 
-The goal of this project is to build a meaningful iOS app that demonstrates core Swift and SwiftUI skills learned throughout the semester, including persistence, async tasks, and common mobile UI patterns.
+## Features
 
-## Figma Prototype
-**Figma Link:**  https://www.figma.com/design/En3MUVfUPkIMemuADXNSZ2/Food-App--HCI-?node-id=0-1&p=f&t=QI0D5ssmSHZPm6c4-0
+- Location-aware restaurant search powered by MapKit
+- Cuisine, price, distance, and rating filters
+- Persistent saved and visited restaurant states using SwiftData
+- Custom restaurant lists
+- Individual and group planning flows
+- Swipe-based restaurant recommendations
+- Weighted match scoring with deterministic ranking
+- Human-readable recommendation explanations
+- Local reservation draft and confirmation tracking
+- Simulated social profiles, social feed data, and reservation-provider behavior
 
-## Core Features (Planned)
-- Save restaurants/places with name, location, notes, and tags
-- Rate restaurants using a simple rating scale or relative to other restaurants you've tried (similar to Beli app)
-- View restaurant details and edit saved entries
-- Create custom lists (ex: “Favorites”, “Want to Try”, “Date Night”, “Best Matcha”)
-- Search and filter restaurants by rating, tags, and list
-- Map view to display saved restaurants geographically (stretch goal depending on time)
+## Screenshots Or Demo
 
-## Planned iOS Technologies
-This app is intended to include at least 3 iOS technologies covered in the course:
-- **Persistence (SwiftData)**  
-  Store restaurants, lists, and ratings locally on device.
-- **CoreLocation/MapKit**  
-  Display restaurant locations and optionally allow adding locations using a map.
-- **Networking with async/await**  
-  Support searching for restaurants from an external API and importing results (time permitting).
-- **Gestures and Animations**  
-  Swipe actions (delete/favorite), liking heart animations, and smooth UI feedback.
+No screenshots or demo assets are currently included in this repository.
 
-## Data Models (Planned)
-The database/models for this project will include:
-- **User** (basic profile info)
-- **Place/Restaurant**
-- **Rating**
-- **Tag**
-- **List/Collection**
+## Architecture
 
-## Requirements Tracking
-All requirements and development tasks for this project will be tracked using GitHub Issues with the following labels:
-- Base Requirements
-- UI Requirements
-- Data Flow Diagrams
-- Final Issues
+The app follows a SwiftUI and MVVM-oriented structure:
 
-## Status
-This project is in progress. Requirements will be defined and refined during Development Logs, and implementation will be completed throughout the semester.
+- `Models`: SwiftData-backed restaurant, list, planning, reservation, and feed models
+- `Services`: protocol-backed restaurant search, recommendation, reservation, feed, user, and haptics boundaries
+- `ViewModels`: observable UI state and workflow orchestration
+- `Views`: SwiftUI screens for search, lists, planning, reservations, profile, and restaurant details
+- `Utils`: formatting helpers, price-tier utilities, and location management
+
+```mermaid
+flowchart LR
+    Views[SwiftUI Views] --> ViewModels[ViewModels]
+    ViewModels --> Services[Protocol-backed Services]
+    ViewModels --> SwiftData[SwiftData Models]
+    Services --> MapKit[MapKit Search]
+    Services --> MockData[Simulated Social and Reservation Data]
+    Views --> CoreLocation[CoreLocation]
+```
+
+## Recommendation Approach
+
+Nibbl uses a deterministic heuristic recommendation engine, not a trained machine-learning model. Restaurants are ranked with weighted scoring based on:
+
+- cuisine compatibility
+- price compatibility
+- distance
+- saved restaurant state and history
+- current filters
+- friend compatibility for group plans
+
+The app converts these scores into bounded match percentages and displays readable explanations so users can understand why a restaurant was recommended.
+
+## Technology Stack
+
+- Swift
+- SwiftUI
+- SwiftData
+- MapKit
+- CoreLocation
+- Combine
+- async/await
+- Xcode
+
+## Prototype Boundaries
+
+Nibbl is a substantial iOS prototype with intentional mock service boundaries:
+
+- Social profiles and feed data are simulated.
+- Reservation state is stored locally.
+- Reservation-provider selection is mocked.
+- External booking links route users to map/search results.
+- The app does not include production authentication.
+- The app does not include a deployed cloud backend.
+- The app does not integrate directly with OpenTable or Resy APIs.
+- The app does not create real restaurant bookings.
+
+## Running Locally
+
+1. Open `Nibbl.xcodeproj` in Xcode 26.2 or newer.
+2. Select the shared `FinalProject` scheme.
+3. Run the app on an iOS 26.2 simulator or device.
+
+The app asks for when-in-use location permission to center restaurant search near the user and calculate distances. If location access is denied, the map starts from the default Baltimore-area region and search still works from the visible map area.
+
+The project currently targets iOS 26.2. A lower deployment target may be possible, but it has not been validated against the current code and Xcode project settings.
+
+## Testing
+
+The unit tests validate deterministic recommendation and filtering logic, including price matching, hard distance caps, saved-restaurant boosts, friend compatibility, recommendation ordering, bounded scores, and result deduplication.
+
+## Future Improvements
+
+- Production authentication
+- Cloud synchronization
+- Real friend accounts
+- Real reservation-provider APIs
+- Improved recommendation evaluation
+- Expanded accessibility coverage
+- UI tests for core flows
+
+## Author
+
+Charissa Luk
+
+Public repository: [https://github.com/charissaluk/nibbl](https://github.com/charissaluk/nibbl)
+
+This project originated as academic work and is presented here as a public portfolio project.
