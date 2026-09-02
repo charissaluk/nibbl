@@ -6,9 +6,5 @@
 	<string>Nibbl</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Nibbl uses your location to center the restaurant map nearby and calculate restaurant distances.</string>
-	<key>NSServices</key>
-	<array>
-		<dict/>
-	</array>
 </dict>
 </plist>

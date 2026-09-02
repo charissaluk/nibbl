@@ -7,7 +7,9 @@
 import Foundation
 import SwiftData
 import Combine
+import OSLog
 
+@MainActor
 final class SwipeDeckViewModel: ObservableObject {
     @Published private(set) var recommendations: [RecommendationResult] = []
     @Published private(set) var currentIndex: Int = 0
@@ -19,13 +21,27 @@ final class SwipeDeckViewModel: ObservableObject {
     private let recommendationEngine: RecommendationEngineServicing
     private let mockUserService: MockUserServicing
     private let hapticsService: HapticsServicing
+    private let logger = Logger(subsystem: "Nibbl", category: "Planning")
+
+    convenience init(
+        session: PlanningSession,
+        candidateRestaurants: [Restaurant]
+    ) {
+        self.init(
+            session: session,
+            candidateRestaurants: candidateRestaurants,
+            recommendationEngine: RecommendationEngine(),
+            mockUserService: MockUserService(),
+            hapticsService: HapticsService()
+        )
+    }
 
     init(
         session: PlanningSession,
         candidateRestaurants: [Restaurant],
-        recommendationEngine: RecommendationEngineServicing = RecommendationEngine(),
-        mockUserService: MockUserServicing = MockUserService(),
-        hapticsService: HapticsServicing = HapticsService()
+        recommendationEngine: RecommendationEngineServicing,
+        mockUserService: MockUserServicing,
+        hapticsService: HapticsServicing
     ) {
         self.session = session
         self.recommendationEngine = recommendationEngine
@@ -88,7 +104,7 @@ final class SwipeDeckViewModel: ObservableObject {
         do {
             try context.save()
         } catch {
-            print("Failed to save swipe decision: \(error)")
+            logger.error("Failed to save swipe decision: \(error.localizedDescription, privacy: .public)")
         }
 
         swipeDecisions.append(swipeDecision)

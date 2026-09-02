@@ -9,6 +9,7 @@ import UIKit
 import SwiftUI
 import SwiftData
 import MapKit
+import OSLog
 
 struct RestaurantDetailView: View {
     @Environment(\.modelContext) private var modelContext
@@ -21,6 +22,7 @@ struct RestaurantDetailView: View {
     @State private var selectedRestaurantForList: Restaurant?
     @State private var selectedRestaurantForReservation: Restaurant?
     @State private var feedbackMessage: String?
+    private let logger = Logger(subsystem: "Nibbl", category: "Persistence")
     
 
     var body: some View {
@@ -273,6 +275,7 @@ struct RestaurantDetailView: View {
             return saved
         } catch {
             feedbackMessage = "Could not save restaurant."
+            logger.error("Failed to save restaurant: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }
@@ -291,14 +294,12 @@ struct RestaurantDetailView: View {
             feedbackMessage = isSaved ? "Saved restaurant." : "Removed from saved restaurants."
         } catch {
             feedbackMessage = "Could not update saved status."
+            logger.error("Failed to update saved status: \(error.localizedDescription, privacy: .public)")
         }
     }
 
     private func openInMaps() {
-        let encodedName = restaurant.name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "Restaurant"
-        let urlString = "http://maps.apple.com/?ll=\(restaurant.latitude),\(restaurant.longitude)&q=\(encodedName)"
-
-        if let url = URL(string: urlString) {
+        if let url = AppleMapsURLBuilder.url(for: restaurant) {
             UIApplication.shared.open(url)
         }
     }
@@ -316,6 +317,7 @@ private struct MockReservationBookingView: View {
     @State private var partySize = 2
     @State private var selectedSlot: Date?
     @State private var feedbackMessage: String?
+    private let logger = Logger(subsystem: "Nibbl", category: "Reservations")
 
     private var acceptsReservations: Bool {
         MockReservationBackend.acceptsReservations(for: restaurant)
@@ -445,6 +447,8 @@ private struct MockReservationBookingView: View {
                                     .foregroundStyle(selectedSlot == slot ? .white : .primary)
                             }
                             .buttonStyle(.plain)
+                            .accessibilityLabel("Reservation time \(slot.formatted(date: .omitted, time: .shortened))")
+                            .accessibilityAddTraits(selectedSlot == slot ? [.isSelected] : [])
                         }
                     }
                 }
@@ -513,7 +517,21 @@ private struct MockReservationBookingView: View {
             }
         } catch {
             feedbackMessage = "Could not create reservation."
-            print("RESERVATION CREATE ERROR:", error)
+            logger.error("Failed to create reservation: \(error.localizedDescription, privacy: .public)")
         }
+    }
+}
+
+enum AppleMapsURLBuilder {
+    static func url(for restaurant: Restaurant) -> URL? {
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "maps.apple.com"
+        components.path = "/"
+        components.queryItems = [
+            URLQueryItem(name: "ll", value: "\(restaurant.latitude),\(restaurant.longitude)"),
+            URLQueryItem(name: "q", value: restaurant.name)
+        ]
+        return components.url
     }
 }

@@ -166,10 +166,7 @@ struct SwipeDeckView: View {
     }
 
     private func openInMaps(_ restaurant: Restaurant) {
-        let encodedName = restaurant.name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "Restaurant"
-        let urlString = "http://maps.apple.com/?ll=\(restaurant.latitude),\(restaurant.longitude)&q=\(encodedName)"
-
-        if let url = URL(string: urlString) {
+        if let url = AppleMapsURLBuilder.url(for: restaurant) {
             UIApplication.shared.open(url)
         }
     }

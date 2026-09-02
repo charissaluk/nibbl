@@ -9,6 +9,7 @@ import MapKit
 import CoreLocation
 import Combine
 
+@MainActor
 final class SearchMapViewModel: ObservableObject {
     @Published var searchText: String = ""
     @Published var region: MKCoordinateRegion
@@ -21,7 +22,11 @@ final class SearchMapViewModel: ObservableObject {
 
     private let searchService: RestaurantSearchServicing
 
-    init(searchService: RestaurantSearchServicing = RestaurantSearchService()) {
+    convenience init() {
+        self.init(searchService: RestaurantSearchService())
+    }
+
+    init(searchService: RestaurantSearchServicing) {
         self.searchService = searchService
         self.region = MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: 39.3299, longitude: -76.6205),
@@ -94,7 +99,7 @@ final class SearchMapViewModel: ObservableObject {
                 combined.append(contentsOf: fetched)
             }
 
-            let deduped = deduplicate(combined)
+            let deduped = RestaurantDeduplicator.deduplicate(combined)
 
             await MainActor.run {
                 self.results = deduped
@@ -109,21 +114,6 @@ final class SearchMapViewModel: ObservableObject {
         }
     }
     
-    private func deduplicate(_ restaurants: [Restaurant]) -> [Restaurant] {
-        var seen = Set<String>()
-
-        return restaurants.filter { restaurant in
-            let key = "\(restaurant.name.lowercased())|\(restaurant.address.lowercased())"
-
-            if seen.contains(key) {
-                return false
-            } else {
-                seen.insert(key)
-                return true
-            }
-        }
-    }
-
     private func matchesFilters(_ restaurant: Restaurant) -> Bool {
         let cuisineMatches: Bool = {
             guard !filters.cuisines.isEmpty else { return true }
@@ -149,5 +139,27 @@ final class SearchMapViewModel: ObservableObject {
         }()
 
         return cuisineMatches && priceMatches && distanceMatches && ratingMatches
+    }
+}
+
+enum RestaurantDeduplicator {
+    static func deduplicate(_ restaurants: [Restaurant]) -> [Restaurant] {
+        var seen = Set<String>()
+
+        return restaurants.filter { restaurant in
+            let key = [
+                restaurant.name,
+                restaurant.address
+            ]
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+            .joined(separator: "|")
+
+            if seen.contains(key) {
+                return false
+            } else {
+                seen.insert(key)
+                return true
+            }
+        }
     }
 }

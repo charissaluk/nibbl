@@ -42,10 +42,10 @@ struct RecommendationEngine: RecommendationEngineServicing {
         selectedFriends: [MockUserProfile],
         transportMode: String
     ) -> [RecommendationResult] {
-        let hardCap = hardDistanceCap(for: transportMode)
+        let hardCap = RecommendationScoring.hardDistanceCap(for: transportMode)
 
         let filteredCandidates = candidates.filter { restaurant in
-            passesHardFilters(
+            RecommendationScoring.passesHardFilters(
                 restaurant: restaurant,
                 filters: currentUserFilters,
                 hardDistanceCap: hardCap
@@ -53,13 +53,13 @@ struct RecommendationEngine: RecommendationEngineServicing {
         }
 
         let ranked = filteredCandidates.map { restaurant in
-            let currentUserScore = scoreForCurrentUser(
+            let currentUserScore = RecommendationScoring.scoreForCurrentUser(
                 restaurant: restaurant,
                 filters: currentUserFilters
             )
 
             let friendScores = Dictionary(uniqueKeysWithValues: selectedFriends.map { friend in
-                (friend.id, scoreForFriend(restaurant: restaurant, friend: friend))
+                (friend.id, RecommendationScoring.scoreForFriend(restaurant: restaurant, friend: friend))
             })
 
             let groupScore: Double
@@ -87,8 +87,10 @@ struct RecommendationEngine: RecommendationEngineServicing {
             return lhs.score > rhs.score
         }
     }
+}
 
-    private func passesHardFilters(
+enum RecommendationScoring {
+    static func passesHardFilters(
         restaurant: Restaurant,
         filters: FilterSettings,
         hardDistanceCap: Double
@@ -119,7 +121,7 @@ struct RecommendationEngine: RecommendationEngineServicing {
         return true
     }
 
-    private func hardDistanceCap(for transportMode: String) -> Double {
+    static func hardDistanceCap(for transportMode: String) -> Double {
         switch transportMode.lowercased() {
         case "walking":
             return 1.0
@@ -132,7 +134,7 @@ struct RecommendationEngine: RecommendationEngineServicing {
         }
     }
 
-    private func scoreForCurrentUser(
+    static func scoreForCurrentUser(
         restaurant: Restaurant,
         filters: FilterSettings
     ) -> Double {
@@ -162,7 +164,7 @@ struct RecommendationEngine: RecommendationEngineServicing {
         )
     }
 
-    private func scoreForFriend(
+    static func scoreForFriend(
         restaurant: Restaurant,
         friend: MockUserProfile
     ) -> Double {
@@ -196,7 +198,7 @@ struct RecommendationEngine: RecommendationEngineServicing {
         )
     }
 
-    private func scoreCuisineMatch(
+    static func scoreCuisineMatch(
         restaurantCuisine: String,
         preferredCuisines: [String]
     ) -> Double {
@@ -207,7 +209,7 @@ struct RecommendationEngine: RecommendationEngineServicing {
         }) ? 1.0 : 0.15
     }
 
-    private func scoreDistance(distance: Double?, idealMax: Double) -> Double {
+    static func scoreDistance(distance: Double?, idealMax: Double) -> Double {
         guard let distance else { return 0.75 }
         guard idealMax > 0 else { return 0.5 }
 
@@ -227,12 +229,12 @@ struct RecommendationEngine: RecommendationEngineServicing {
         }
     }
 
-    private func scoreRating(_ rating: Double?) -> Double {
+    static func scoreRating(_ rating: Double?) -> Double {
         guard let rating else { return 0.65 }
         return min(max(rating / 5.0, 0), 1)
     }
 
-    private func scoreVibeMatch(notes: String?, preferences: [String]) -> Double {
+    static func scoreVibeMatch(notes: String?, preferences: [String]) -> Double {
         guard
             let notes,
             !notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
@@ -246,7 +248,7 @@ struct RecommendationEngine: RecommendationEngineServicing {
         return min(1.0, Double(matches.count) / Double(preferences.count))
     }
 
-    private func normalize(_ value: Double) -> Double {
+    static func normalize(_ value: Double) -> Double {
         min(max(value, 0), 1)
     }
 }

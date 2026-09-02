@@ -9,6 +9,7 @@ import Foundation
 import SwiftData
 import Combine
 
+@MainActor
 final class PlanSummaryViewModel: ObservableObject {
     struct SummaryItem: Identifiable, Hashable {
         let id: UUID

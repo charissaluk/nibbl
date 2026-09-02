@@ -9,12 +9,15 @@
 import Foundation
 import CoreLocation
 import Combine
+import OSLog
 
+@MainActor
 final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var location: CLLocation?
     @Published var authorizationStatus: CLAuthorizationStatus
 
     private let manager = CLLocationManager()
+    private let logger = Logger(subsystem: "Nibbl", category: "Location")
 
     override init() {
         self.authorizationStatus = manager.authorizationStatus
@@ -29,7 +32,6 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
             manager.requestWhenInUseAuthorization()
         case .authorizedWhenInUse, .authorizedAlways:
             manager.requestLocation()
-            manager.startUpdatingLocation()
         case .denied, .restricted:
             break
         @unknown default:
@@ -43,8 +45,8 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
         switch manager.authorizationStatus {
         case .authorizedWhenInUse, .authorizedAlways:
             manager.requestLocation()
-            manager.startUpdatingLocation()
         default:
+            manager.stopUpdatingLocation()
             break
         }
     }
@@ -52,9 +54,11 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let latest = locations.last else { return }
         location = latest
+        manager.stopUpdatingLocation()
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        print("LocationManager error: \(error)")
+        logger.error("Location request failed: \(error.localizedDescription, privacy: .public)")
+        manager.stopUpdatingLocation()
     }
 }

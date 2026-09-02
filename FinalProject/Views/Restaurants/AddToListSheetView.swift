@@ -6,6 +6,7 @@
 //
 import SwiftUI
 import SwiftData
+import OSLog
 
 struct AddToListSheetView: View {
     @Environment(\.dismiss) private var dismiss
@@ -15,6 +16,7 @@ struct AddToListSheetView: View {
     let restaurant: Restaurant
 
     @State private var newListName = ""
+    private let logger = Logger(subsystem: "Nibbl", category: "Persistence")
 
     var body: some View {
         NavigationStack {
@@ -138,7 +140,7 @@ struct AddToListSheetView: View {
             try modelContext.save()
             dismiss()
         } catch {
-            print("LIST SAVE ERROR:", error)
+            logger.error("Failed to update restaurant list: \(error.localizedDescription, privacy: .public)")
         }
     }
 }

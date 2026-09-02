@@ -41,6 +41,9 @@ struct SwipeCardView: View {
         .onTapGesture {
             isFlipped.toggle()
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("\(recommendation.restaurant.name), \(matchPercentage)% match")
+        .accessibilityHint(isFlipped ? "Tap to return to the recommendation summary." : "Tap to show restaurant details.")
     }
 
     private var frontCard: some View {

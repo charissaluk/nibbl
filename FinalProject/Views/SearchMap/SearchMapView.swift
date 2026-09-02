@@ -9,6 +9,7 @@ import SwiftUI
 import SwiftData
 import MapKit
 import CoreLocation
+import OSLog
 
 struct SearchMapView: View {
     @Environment(\.modelContext) private var modelContext
@@ -22,6 +23,7 @@ struct SearchMapView: View {
     @State private var restaurantForDetail: Restaurant?
     @State private var saveRefreshToken = UUID()
     @State private var hasCenteredOnUserLocation = false
+    private let logger = Logger(subsystem: "Nibbl", category: "Persistence")
     
     private let cuisineOptions: [String] = [
         "Japanese", "Korean", "Chinese", "Thai", "Vietnamese",
@@ -112,6 +114,8 @@ struct SearchMapView: View {
                             }
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel(restaurant.name)
+                        .accessibilityHint("Selects this restaurant on the map.")
                     }
                 }
             }
@@ -162,6 +166,7 @@ struct SearchMapView: View {
                             .shadow(color: .black.opacity(0.12), radius: 10, x: 0, y: 6)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Center map on current location")
                     .padding(.trailing, 14)
                     .padding(.bottom, selectedRestaurant == nil ? 14 : 110)
                 }
@@ -204,6 +209,7 @@ struct SearchMapView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Clear search text")
             }
         }
         .padding(.horizontal, 14)
@@ -279,6 +285,10 @@ struct SearchMapView: View {
             .onTapGesture {
                 openRestaurantDetail(restaurant)
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("\(restaurant.name), \(restaurant.cuisine), \(restaurant.priceTier)")
+            .accessibilityHint("Opens restaurant details.")
+            .accessibilityAddTraits(.isButton)
 
             Image(systemName: isRestaurantSaved(restaurant) ? "bookmark.fill" : "bookmark")
                 .font(.title3.weight(.semibold))
@@ -289,6 +299,8 @@ struct SearchMapView: View {
                 .onTapGesture {
                     toggleSavedRestaurant(restaurant)
                 }
+                .accessibilityLabel(isRestaurantSaved(restaurant) ? "Remove \(restaurant.name) from saved restaurants" : "Save \(restaurant.name)")
+                .accessibilityAddTraits(.isButton)
         }
         .padding(16)
         .background(
@@ -418,7 +430,7 @@ struct SearchMapView: View {
         do {
             try modelContext.save()
         } catch {
-            print("SAVE ERROR:", error)
+            logger.error("Failed to update saved restaurant: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -559,6 +571,10 @@ private struct SearchResultCard: View {
             .onTapGesture {
                 onCardTapped()
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("\(restaurant.name), \(restaurant.cuisine), \(restaurant.priceTier)")
+            .accessibilityHint("Opens restaurant details.")
+            .accessibilityAddTraits(.isButton)
 
             Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
                 .font(.title2.weight(.semibold))
@@ -569,6 +585,8 @@ private struct SearchResultCard: View {
                 .onTapGesture {
                     onSaveTapped()
                 }
+                .accessibilityLabel(isSaved ? "Remove \(restaurant.name) from saved restaurants" : "Save \(restaurant.name)")
+                .accessibilityAddTraits(.isButton)
         }
         .padding(16)
         .background(
